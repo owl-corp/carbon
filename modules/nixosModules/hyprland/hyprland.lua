@@ -3,7 +3,7 @@ local fileManager = "nautilus"
 local menu        = "vicinae toggle"
 
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user import-environment PATH && systemctl --user start hyprland-session.target")
+    hl.exec_cmd("systemctl --user import-environment PATH XDG_SESSION_TYPE && systemctl --user start hyprland-session.target")
     hl.exec_cmd("hyprpaper --config /etc/hypr/hyprpaper.conf")
 end)
 
