@@ -64,6 +64,8 @@
         environment.etc."hypr/hyprpaper.conf".source = ./hyprpaper.conf;
 
         environment.sessionVariables.HYPRLAND_CONFIG = "/etc/hypr/hyprland.lua";
+        # Electron apps default to XWayland, where screen sharing only sees one monitor.
+        environment.sessionVariables.NIXOS_OZONE_WL = lib.mkDefault "1";
 
         # xdg-desktop-portal >= 1.22 refuses to start unless
         # graphical-session.target is active, and Hyprland without UWSM never
