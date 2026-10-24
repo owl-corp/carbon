@@ -7,7 +7,7 @@ Shared NixOS and home-manager modules, built on [flake-parts](https://flake.part
 ```nix
 # flake.nix
 inputs.carbon = {
-  url = "github:owl-corp/carbon";
+  url = "git+ssh://git@github.com/owl-corp/carbon";
   inputs.nixpkgs.follows = "nixpkgs";
   inputs.home-manager.follows = "home-manager";
   inputs.flake-parts.follows = "flake-parts";
