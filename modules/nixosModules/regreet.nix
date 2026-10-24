@@ -47,6 +47,17 @@
           command = "${config.programs.hyprland.package}/bin/start-hyprland -- --locked-cmd '${lib.getExe config.programs.hyprlock.package} --config /etc/hypr/hyprlock.conf'";
         };
 
+        # Auto-login starts gnome-keyring without its components, so hyprlock's PAM unlock fails until something initialises them.
+        systemd.user.services.gnome-keyring-start = lib.mkIf (cfg.autoLogin != null && config.services.gnome.gnome-keyring.enable) {
+          description = "Initialise gnome-keyring components before the session is unlocked";
+          wantedBy = [ "graphical-session.target" ];
+          partOf = [ "graphical-session.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${config.security.wrapperDir}/gnome-keyring-daemon --start --components=secrets";
+          };
+        };
+
         services.displayManager.regreet = {
           enable = true;
           theme = {
