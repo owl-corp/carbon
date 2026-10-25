@@ -1,3 +1,4 @@
+import json
 import re
 import subprocess
 import sys
@@ -47,8 +48,82 @@ def diff(label, old, new):
         print(paint("2", f"    {summary}"))
 
 
+def scan(paths):
+    out = subprocess.run(
+        ["vulnix", "--closure", "--json", *paths], capture_output=True, text=True,
+    )
+    # Exit code 2 just means vulnerabilities were found.
+    if out.returncode not in (0, 2):
+        raise RuntimeError(out.stderr.strip().splitlines()[-1])
+    return [
+        [cve, entry["pname"], entry["cvssv3_basescore"].get(cve)]
+        for entry in json.loads(out.stdout)
+        for cve in entry["affected_by"]
+    ]
+
+
+def save_scan(file, paths):
+    try:
+        result = {"found": scan(paths)}
+    except Exception as e:
+        result = {"error": str(e)}
+    with open(file, "w") as f:
+        json.dump(result, f)
+
+
+def load_scan(file):
+    with open(file) as f:
+        result = json.load(f)
+    if "error" in result:
+        raise RuntimeError(result["error"])
+    return result["found"]
+
+
+def cves(olds, news, before):
+    print(paint("1", "==> CVEs"))
+    try:
+        found = [load_scan(before) if before else scan(olds), scan(news)]
+    except Exception as e:
+        print(f"    vulnix failed: {e}")
+        return
+    old, new = ({(cve, pname): score for cve, pname, score in f} for f in found)
+
+    old_ids = {cve for cve, _ in old}
+    new_ids = {cve for cve, _ in new}
+    rows = 0
+    for sign, code, found, gone in [("\u2713", "32", old, new_ids), ("!", "31", new, old_ids)]:
+        packages = {}
+        for (cve, pname), score in found.items():
+            if cve not in gone:
+                packages.setdefault(pname, []).append((score or 0, cve))
+        width = max(map(len, packages), default=0)
+        for pname, found_cves in sorted(packages.items()):
+            found_cves.sort(reverse=True)
+            shown = ", ".join(f"{cve} ({score})" for score, cve in found_cves[:3])
+            if len(found_cves) > 3:
+                shown += f", +{len(found_cves) - 3} more"
+            print(f"    {paint(code, sign)} {pname.ljust(width)}  {shown}")
+            rows += 1
+    if not rows:
+        print("    no CVE changes")
+    high = len({cve for (cve, _), score in new.items() if (score or 0) >= 7})
+    print(paint("2", f"    {len(new_ids)} known CVEs remain, {high} rated 7.0 or higher."))
+
+
 args = sys.argv[1:]
+if args[:1] == ["--scan"]:
+    save_scan(args[1], args[2:])
+    sys.exit()
+before = None
+if args[:1] == ["--cves-before"]:
+    before, args = args[1], args[2:]
 if not args or len(args) % 3:
-    sys.exit("usage: system-diff <label> <old> <new> [<label> <old> <new>...]")
-for i in range(0, len(args), 3):
-    diff(*args[i:i + 3])
+    sys.exit(
+        "usage: system-diff [--cves-before <file>] <label> <old> <new>...\n"
+        "       system-diff --scan <file> <path>..."
+    )
+triples = [args[i:i + 3] for i in range(0, len(args), 3)]
+for label, old, new in triples:
+    diff(label, old, new)
+if any(old != new for _, old, new in triples):
+    cves([old for _, old, _ in triples], [new for _, _, new in triples], before)

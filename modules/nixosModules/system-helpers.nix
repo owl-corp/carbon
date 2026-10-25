@@ -21,12 +21,12 @@
           '';
         };
 
-      # Prints the package changes between generations, via nvd with the
-      # unversioned noise filtered out.
+      # Prints the package and CVE changes between generations, via nvd and
+      # vulnix, with the unversioned noise filtered out.
       system-diff =
-        { writers, nvd, ... }:
+        { writers, nvd, vulnix, ... }:
         writers.writePython3Bin "system-diff" {
-          makeWrapperArgs = [ "--prefix" "PATH" ":" "${lib.makeBinPath [ nvd ]}" ];
+          makeWrapperArgs = [ "--prefix" "PATH" ":" "${lib.makeBinPath [ nvd vulnix ]}" ];
           flakeIgnore = [ "E501" ];
         } (builtins.readFile ./system-diff.py);
 
@@ -35,16 +35,22 @@
       # finishes with what changed. Works on the checkout rather than the store
       # copy of this flake, as the updates write back into it.
       system-update =
-        { writeShellApplication, system-rebuild, system-diff, ... }:
+        { writeShellApplication, util-linux, system-rebuild, system-diff, ... }:
         writeShellApplication {
           name = "system-update";
-          runtimeInputs = [ system-rebuild system-diff ];
+          runtimeInputs = [ util-linux system-rebuild system-diff ];
           text = ''
             cd "''${NIXCFG:-${cfg.flakePath}}"
 
             hm_profile="''${XDG_STATE_HOME:-$HOME/.local/state}/nix/profiles/home-manager"
             old_system=$(readlink -f /run/current-system)
             old_home=$(readlink -f "$hm_profile")
+
+            # Scan the current generations for CVEs while the update runs.
+            tmp=$(mktemp -d)
+            setsid system-diff --scan "$tmp/cves.json" "$old_system" "$old_home" &
+            scan=$!
+            trap 'kill -- -"$scan" 2>/dev/null; rm -rf "$tmp"' EXIT
 
             shopt -s nullglob
             for script in modules/packages/*/update.sh; do
@@ -56,8 +62,9 @@
 
             system-rebuild
 
+            wait "$scan"
             echo
-            system-diff \
+            system-diff --cves-before "$tmp/cves.json" \
               System "$old_system" "$(readlink -f /run/current-system)" \
               Home "$old_home" "$(readlink -f "$hm_profile")"
           '';
