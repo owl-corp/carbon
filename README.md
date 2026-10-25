@@ -32,6 +32,7 @@ Carbon doesn't configure apps for you. Each consumer keeps their own config for 
 - `nixosModules.hyprland`: `hyprland-session.target` (start it from your hyprland config so `xdg-desktop-portal` runs), hyprlock gnome-keyring PAM, `NIXOS_OZONE_WL`.
 - `nixosModules.regreet`: initialises gnome-keyring components when greetd auto-logs in (`initial_session`).
 - `nixosModules.waybar`: lets the user service inherit the session `PATH`; reloads running instances after a switch.
+- `nixosModules.quickshell`: a `quickshell` user service on `graphical-session.target` with the session `PATH`, restarted after a switch; pick a config with `carbon.quickshell.config`. Put your config in `/etc/xdg/quickshell`.
 - `nixosModules.nautilus`: Nautilus, with opt-in `carbon.nautilus.{gvfs,sushi,thumbnails,pythonExtensions,openAnyTerminal}.enable`.
 - `nixosModules.systemHelpers`: `system-rebuild`, `system-update` and `system-clean`.
 
