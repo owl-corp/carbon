@@ -7,3 +7,6 @@ result-*
 
 # Ignore NixOS interactive test driver history
 **/.nixos-test-history
+
+# Ignore personal Claude Code settings
+.claude/settings.local.json
