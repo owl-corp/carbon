@@ -38,6 +38,7 @@ flake.nixosModules.waybar = {
 - `nixosModules.regreet`: initialises gnome-keyring components when greetd auto-logs in (`initial_session`).
 - `nixosModules.waybar`: lets the user service inherit the session `PATH`; reloads running instances after a switch.
 - `nixosModules.quickshell`: a `quickshell` user service on `graphical-session.target` with the session `PATH`, restarted after a switch; pick a config with `carbon.quickshell.config`. Put your config in `/etc/xdg/quickshell`.
+- `nixosModules.openlogi`: [OpenLogi](https://github.com/AprilNEA/OpenLogi) for Logitech mice: udev rules and an agent user service on `graphical-session.target`, restarted when a Logitech mouse connects (Bluetooth mice usually connect after login).
 - `nixosModules.nautilus`: Nautilus, with opt-in `carbon.nautilus.{gvfs,sushi,thumbnails,pythonExtensions,openAnyTerminal}.enable`.
 - `nixosModules.systemHelpers`: `system-rebuild`, `system-update` and `system-clean`. They run from `/etc/nixos` (symlink it to your checkout), or set `carbon.systemHelpers.flakePath`.
 
