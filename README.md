@@ -76,6 +76,12 @@ Waybar's on-click commands see your session's `PATH`, and running bars reload th
 
 A `screenshot` command for Wayland: it freezes the screen, lets you drag out an area, then saves it with rounded corners and copies it to the clipboard. Screenshots go to `~/Pictures/Screenshots`, or wherever `carbon.screenshot.directory` points. Bind it to a key in your compositor config.
 
+### micMute
+
+A `mic-mute` command that mutes or unmutes your default microphone for every app. If Discord or Vesktop is open, it also presses Discord's mute shortcut (Ctrl+Shift+M) in its window, so Discord's mute button and sound match. Bind it to a key in your Hyprland config. It needs Hyprland's Lua config, and expects Discord's mute shortcut to be the default.
+
+If you mute from inside Discord, only Discord changes, and the two get out of step until you click Discord's button again.
+
 ### nautilus
 
 Installs Nautilus. Extras you can turn on under `carbon.nautilus`:
