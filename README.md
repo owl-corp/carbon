@@ -72,6 +72,10 @@ Waybar's on-click commands see your session's `PATH`, and running bars reload th
 
 [OpenLogi](https://github.com/AprilNEA/OpenLogi) support for Logitech mice: device permissions plus the background agent, started with your session. The agent only looks for a mouse when it starts, and Bluetooth mice usually connect after you log in, so it gets restarted whenever a Logitech mouse connects.
 
+### screenshot
+
+A `screenshot` command for Wayland: it freezes the screen, lets you drag out an area, then saves it with rounded corners and copies it to the clipboard. Screenshots go to `~/Pictures/Screenshots`, or wherever `carbon.screenshot.directory` points. Bind it to a key in your compositor config.
+
 ### nautilus
 
 Installs Nautilus. Extras you can turn on under `carbon.nautilus`:
