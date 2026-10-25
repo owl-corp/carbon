@@ -1,7 +1,5 @@
-# Not under modules/, so consumers don't import it twice alongside their own.
 { inputs, ... }: {
   imports = [
-    inputs.flake-parts.flakeModules.flakeModules
     inputs.home-manager.flakeModules.home-manager
   ];
 

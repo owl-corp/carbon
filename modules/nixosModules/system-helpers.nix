@@ -96,10 +96,12 @@
     in {
       options.carbon.systemHelpers.flakePath = lib.mkOption {
         type = lib.types.str;
+        default = "/etc/nixos";
         example = "$HOME/src/nixcfg";
         description = ''
           Checkout of the system flake, expanded by the shell at run time.
-          The NIXCFG environment variable overrides it.
+          The NIXCFG environment variable overrides it. The default works when
+          /etc/nixos is a symlink to the checkout.
         '';
       };
 

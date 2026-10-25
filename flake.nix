@@ -18,7 +18,5 @@
         ./parts.nix
         (inputs.import-tree ./modules)
       ];
-
-      flake.flakeModules.default = inputs.import-tree ./modules;
     };
 }
