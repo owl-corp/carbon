@@ -1,8 +1,10 @@
 # carbon
 
-Shared NixOS and home-manager extras, exported as plain `nixosModules.*`. Internally every `.nix` file under `modules/` is a [flake-parts](https://flake.parts) module, loaded with [import-tree](https://github.com/vic/import-tree).
+NixOS modules we share between our configs. Carbon doesn't set up your apps for you: your keybinds, themes and bar layout stay in your own config. What lives here are the fixes that make those apps actually work on NixOS, like systemd units, session wiring and a few helper scripts.
 
-## Usage
+## Getting started
+
+Add carbon to your flake inputs:
 
 ```nix
 # flake.nix
@@ -25,7 +27,7 @@ nixosSystem {
 }
 ```
 
-Carbon doesn't configure apps for you. Each consumer keeps their own config for an app (keybinds, themes, bar layout) and carbon holds the fixes that go with it: systemd units, session plumbing, and small tools. A handy pattern is to import carbon's module from your own module for that app:
+A tidy way to do it is to import carbon's module from your own module for the same app, so the app's config and its fixes sit together:
 
 ```nix
 flake.nixosModules.waybar = {
@@ -34,24 +36,74 @@ flake.nixosModules.waybar = {
 };
 ```
 
-- `nixosModules.hyprland`: `hyprland-session.target` (start it from your hyprland config so `xdg-desktop-portal` runs; import `HYPRLAND_INSTANCE_SIGNATURE` first so the session stops when Hyprland exits), hyprlock gnome-keyring PAM, `NIXOS_OZONE_WL`.
-- `nixosModules.regreet`: initialises gnome-keyring components when greetd auto-logs in (`initial_session`).
-- `nixosModules.waybar`: lets the user service inherit the session `PATH`; reloads running instances after a switch.
-- `nixosModules.quickshell`: a `quickshell` user service on `graphical-session.target` with the session `PATH`, restarted after a switch; pick a config with `carbon.quickshell.config`. Put your config in `/etc/xdg/quickshell`.
-- `nixosModules.openlogi`: [OpenLogi](https://github.com/AprilNEA/OpenLogi) for Logitech mice: udev rules and an agent user service on `graphical-session.target`, restarted when a Logitech mouse connects (Bluetooth mice usually connect after login).
-- `nixosModules.nautilus`: Nautilus, with opt-in `carbon.nautilus.{gvfs,sushi,thumbnails,pythonExtensions,openAnyTerminal}.enable`.
-- `nixosModules.systemHelpers`: `system-rebuild`, `system-update` and `system-clean`. They run from `/etc/nixos` (symlink it to your checkout), or set `carbon.systemHelpers.flakePath`.
+Importing a module is how you opt in, and leaving it out is how you opt out. Any default carbon picks for you can be overridden with a normal assignment in your own config.
 
-Opinions are set with `lib.mkDefault`, so a plain assignment overrides them. To drop a module, don't import it.
+## Modules
 
-## Writing modules
+### hyprland
 
-- Only extras that make an app work; leave the app's own config to the consumer.
-- No personal values (names, emails, usernames, monitors); expose an option or leave it to the consumer.
-- Set opinions with `lib.mkDefault` so consumers can override with a plain assignment.
-- `inputs` and `self` refer to carbon, not the consumer.
+Makes the rest of the desktop work when Hyprland is started without UWSM:
 
-## Local development
+- **Screen sharing and portals.** Adds a `hyprland-session.target` that brings up the graphical session, which `xdg-desktop-portal` needs before it will start. Start it from your Hyprland config:
+
+  ```sh
+  systemctl --user import-environment PATH XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE && systemctl --user start hyprland-session.target
+  ```
+
+- **Clean logout.** When Hyprland exits, the session is stopped too, so your bar and portals don't crash-loop and stay dead after you log back in. This relies on `HYPRLAND_INSTANCE_SIGNATURE` being imported in the line above.
+- **Keyring unlock.** hyprlock unlocks gnome-keyring when you log in, if gnome-keyring is enabled.
+- **Electron apps.** Run on Wayland instead of XWayland, so screen sharing can see every monitor.
+
+### regreet
+
+If greetd logs you in automatically, gnome-keyring starts only partly set up and hyprlock can't unlock it. This finishes setting it up when the session starts.
+
+### quickshell
+
+Runs Quickshell as a user service for the graphical session. It sees the same `PATH` as your session, so commands in your config work, and it restarts after a rebuild so your changes show up straight away.
+
+Put your config in `/etc/xdg/quickshell`. If you keep several, pick one with `carbon.quickshell.config`.
+
+### waybar
+
+Waybar's on-click commands see your session's `PATH`, and running bars reload their config after a rebuild.
+
+### openlogi
+
+[OpenLogi](https://github.com/AprilNEA/OpenLogi) support for Logitech mice: device permissions plus the background agent, started with your session. The agent only looks for a mouse when it starts, and Bluetooth mice usually connect after you log in, so it gets restarted whenever a Logitech mouse connects.
+
+### nautilus
+
+Installs Nautilus. Extras you can turn on under `carbon.nautilus`:
+
+- `gvfs.enable`: trash, network shares and USB drives
+- `sushi.enable`: quick previews with the space bar
+- `thumbnails.enable`: video thumbnails
+- `pythonExtensions.enable`: extensions other packages install for Nautilus
+- `openAnyTerminal.enable`: an "Open in terminal" right-click entry
+
+### systemHelpers
+
+Three commands for looking after your system:
+
+- `system-rebuild` switches both your NixOS and home-manager configs.
+- `system-update` runs every `modules/packages/*/update.sh`, updates `flake.lock`, rebuilds, then shows which packages and known security issues (CVEs) changed.
+- `system-clean <age>` deletes old generations, e.g. `system-clean 7d`, and frees up the space they used.
+
+They run from `/etc/nixos`. Symlink that to your checkout, or set `carbon.systemHelpers.flakePath`.
+
+## Adding a module
+
+Every `.nix` file under `modules/` is loaded automatically as a [flake-parts](https://flake.parts) module (via [import-tree](https://github.com/vic/import-tree)). When adding one:
+
+- Only include what an app needs to work. Its actual settings belong in each person's own config.
+- Keep personal details out: no names, emails, usernames or monitor setups. Add an option instead, or leave it to the consumer.
+- Set any opinions with `lib.mkDefault`, so people can override them with a plain assignment.
+- Inside these modules, `inputs` and `self` are carbon's, not the consumer's.
+
+## Testing changes locally
+
+Build your own config against your carbon checkout instead of the pushed version:
 
 ```sh
 nixos-rebuild build --flake . --override-input carbon path:$HOME/src/carbon
