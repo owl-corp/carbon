@@ -7,6 +7,7 @@ SECTIONS = {
     "Version changes:": ("~", "33"),
     "Added packages:": ("+", "32"),
     "Removed packages:": ("-", "31"),
+    "Selection state changes:": None,
 }
 ENTRY = re.compile(r"^\[.(.)\]\s+#\d+\s+(\S+)\s+(.*)$")
 colour = sys.stdout.isatty()
@@ -24,11 +25,14 @@ def diff(label, old, new):
 
     out = subprocess.run(
         ["nvd", "--color", "never", "diff", old, new],
-        check=True, capture_output=True, text=True,
-    ).stdout
+        capture_output=True, text=True,
+    )
+    if out.returncode:
+        print(f"    nvd failed: {out.stderr.strip()}")
+        return
 
     rows, summary, section = [], None, None
-    for line in out.splitlines():
+    for line in out.stdout.splitlines():
         if line in SECTIONS:
             section = SECTIONS[line]
         elif line.startswith("Closure size:"):
@@ -52,9 +56,9 @@ def scan(paths):
     out = subprocess.run(
         ["vulnix", "--closure", "--json", *paths], capture_output=True, text=True,
     )
-    # Exit code 2 just means vulnerabilities were found.
-    if out.returncode not in (0, 2):
-        raise RuntimeError(out.stderr.strip().splitlines()[-1])
+    # Exit code 2 can mean vulnerabilities were found; only errors leave stdout empty.
+    if out.returncode not in (0, 2) or not out.stdout.strip():
+        raise RuntimeError((out.stderr.strip().splitlines() or [f"exit code {out.returncode}"])[-1])
     return [
         [cve, entry["pname"], entry["cvssv3_basescore"].get(cve)]
         for entry in json.loads(out.stdout)
@@ -62,27 +66,10 @@ def scan(paths):
     ]
 
 
-def save_scan(file, paths):
-    try:
-        result = {"found": scan(paths)}
-    except Exception as e:
-        result = {"error": str(e)}
-    with open(file, "w") as f:
-        json.dump(result, f)
-
-
-def load_scan(file):
-    with open(file) as f:
-        result = json.load(f)
-    if "error" in result:
-        raise RuntimeError(result["error"])
-    return result["found"]
-
-
-def cves(olds, news, before):
+def cves(olds, news):
     print(paint("1", "==> CVEs"))
     try:
-        found = [load_scan(before) if before else scan(olds), scan(news)]
+        found = [scan(olds), scan(news)]
     except Exception as e:
         print(f"    vulnix failed: {e}")
         return
@@ -111,19 +98,10 @@ def cves(olds, news, before):
 
 
 args = sys.argv[1:]
-if args[:1] == ["--scan"]:
-    save_scan(args[1], args[2:])
-    sys.exit()
-before = None
-if args[:1] == ["--cves-before"]:
-    before, args = args[1], args[2:]
 if not args or len(args) % 3:
-    sys.exit(
-        "usage: system-diff [--cves-before <file>] <label> <old> <new>...\n"
-        "       system-diff --scan <file> <path>..."
-    )
+    sys.exit("usage: system-diff <label> <old> <new>...")
 triples = [args[i:i + 3] for i in range(0, len(args), 3)]
 for label, old, new in triples:
     diff(label, old, new)
 if any(old != new for _, old, new in triples):
-    cves([old for _, old, _ in triples], [new for _, _, new in triples], before)
+    cves([old for _, old, _ in triples], [new for _, _, new in triples])
