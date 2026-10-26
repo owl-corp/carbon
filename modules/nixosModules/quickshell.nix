@@ -3,19 +3,7 @@
     let
       cfg = config.carbon.quickshell;
     in {
-      options.carbon.quickshell = {
-        package = lib.mkPackageOption pkgs "quickshell" { };
-        config = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-          example = "bar";
-          description = ''
-            Name of the config to run, i.e. `/etc/xdg/quickshell/<name>/shell.qml`.
-            When null, quickshell runs `/etc/xdg/quickshell/shell.qml` or
-            `~/.config/quickshell/shell.qml`.
-          '';
-        };
-      };
+      options.carbon.quickshell.package = lib.mkPackageOption pkgs "quickshell" { };
 
       config = {
         environment.systemPackages = [ cfg.package ];
@@ -30,18 +18,17 @@
           # Inherit the session PATH so Process and exec commands resolve.
           environment.PATH = lib.mkForce null;
           serviceConfig = {
-            ExecStart = lib.escapeShellArgs (
-              [ (lib.getExe cfg.package) ] ++ lib.optionals (cfg.config != null) [ "--config" cfg.config ]
-            );
+            ExecStart = lib.getExe cfg.package;
             Restart = "always";
             RestartSec = 1;
           };
         };
 
-        # Hot reload doesn't see /etc/static flip on a switch; kill it and let the service restart it.
+        # Hot reload misses config changes from a switch, so kill it and let the service restart it.
         system.activationScripts.reloadQuickshell = {
           deps = [ "etc" ];
           text = ''
+            # Process names are cut to 15 characters, hence "-wra".
             ${pkgs.procps}/bin/pkill -x '\.?quickshell(-wra)?' || true
           '';
         };

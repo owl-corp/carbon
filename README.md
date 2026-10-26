@@ -11,7 +11,6 @@ Add carbon to your flake inputs:
 inputs.carbon = {
   url = "git+ssh://git@github.com/owl-corp/carbon";
   inputs.nixpkgs.follows = "nixpkgs";
-  inputs.home-manager.follows = "home-manager";
 };
 ```
 
@@ -62,7 +61,7 @@ If greetd logs you in automatically, gnome-keyring starts only partly set up and
 
 Runs Quickshell as a user service for the graphical session. It sees the same `PATH` as your session, so commands in your config work, and it restarts after a rebuild so your changes show up straight away.
 
-Put your config in `/etc/xdg/quickshell`. If you keep several, pick one with `carbon.quickshell.config`.
+Put your config in `/etc/xdg/quickshell`.
 
 ### waybar
 
@@ -84,13 +83,9 @@ If you mute from inside Discord, only Discord changes, and the two get out of st
 
 ### nautilus
 
-Installs Nautilus. Extras you can turn on under `carbon.nautilus`:
+Installs Nautilus. Set `carbon.nautilus.pythonExtensions.enable` to load extensions other packages install for Nautilus outside GNOME.
 
-- `gvfs.enable`: trash, network shares and USB drives
-- `sushi.enable`: quick previews with the space bar
-- `thumbnails.enable`: video thumbnails
-- `pythonExtensions.enable`: extensions other packages install for Nautilus
-- `openAnyTerminal.enable`: an "Open in terminal" right-click entry
+The usual extras are plain NixOS options: `services.gvfs.enable` for trash, network shares and USB drives, `services.gnome.sushi.enable` for space-bar previews, `programs.nautilus-open-any-terminal.enable` for an "Open in terminal" entry, and `ffmpegthumbnailer` in `environment.systemPackages` for video thumbnails.
 
 ### systemHelpers
 
