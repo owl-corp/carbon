@@ -13,7 +13,6 @@
 
           # Prompt for the password now, before nom takes over the terminal.
           sudo -v
-          # Evaluate as the user so private git+ssh inputs use their SSH keys.
           nixos-rebuild switch --sudo --flake . --log-format internal-json -v |& nom --json
           home-manager switch --flake . --log-format internal-json -v |& nom --json
         '';

@@ -9,7 +9,7 @@ Add carbon to your flake inputs:
 ```nix
 # flake.nix
 inputs.carbon = {
-  url = "git+ssh://git@github.com/owl-corp/carbon";
+  url = "github:owl-corp/carbon";
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
